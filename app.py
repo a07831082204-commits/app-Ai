@@ -1,20 +1,19 @@
 import streamlit as st
 import google.generativeai as genai
 
-# إعدادات الواجهة
+# إعدادات الواجهة باسمك MUNTADHER.H.ASD
 st.set_page_config(page_title="MUNTADHER.H.ASD AI", page_icon="🤖")
 st.title("🤖 مساعد MUNTADHER.H.ASD الذكي")
 
-# جلب المفتاح من الخزنة السرية للموقع
-try:
-    API_KEY = st.secrets["GEMINI_API_KEY"]
-    genai.configure(api_key=API_KEY)
+# جلب المفتاح السري من إعدادات الموقع
+if "GEMINI_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
     model = genai.GenerativeModel('gemini-1.5-flash')
-except:
-    st.error("المفتاح السري غير مضاف في إعدادات الموقع.")
+else:
+    st.error("يرجى إضافة مفتاح API في إعدادات Secrets.")
     st.stop()
 
-# ذاكرة المحادثة
+# الذاكرة وعرض الشات
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -32,6 +31,6 @@ if prompt := st.chat_input("اسألني أي شيء..."):
             response = model.generate_content(prompt)
             st.markdown(response.text)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
-        except Exception as e:
+        except Exception:
             st.error("حدث خطأ في الاتصال.")
             
