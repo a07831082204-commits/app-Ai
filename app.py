@@ -1,49 +1,59 @@
 import streamlit as st
-import google.generativeai as genai
+import requests
+import json
 
-# إعدادات الواجهة
-st.set_page_config(page_title="MUNTADHER.H.ASD AI", page_icon="🤖")
+# --- إعدادات الواجهة باسم MUNTADHER.H.ASD ---
+st.set_page_config(
+    page_title="MUNTADHER.H.ASD AI",
+    page_icon="⚡",
+    layout="centered"
+)
 
 st.title("🤖 مساعد MUNTADHER.H.ASD الذكي")
 st.markdown("---")
 
-# الشريط الجانبي
-st.sidebar.title("إعدادات الوصول")
-# المفتاح الافتراضي (تأكد من الحصول على واحد خاص بك إذا لم يعمل هذا)
-default_key = "AIzaSyCaob5EdZ15Cry_79esFizlSkAs9VNI_yU"
-api_key = st.sidebar.text_input("أدخل مفتاح API الخاص بك:", value=default_key, type="password")
-
-st.sidebar.markdown("---")
-st.sidebar.info("المطور: MUNTADHER.H.ASD")
-
-# إعداد المكتبة الرسمية
-if api_key:
-    genai.configure(api_key=api_key)
-    model = genai.GenerativeModel('gemini-1.5-flash')
+# مفتاح الـ API والرابط المحدث (v1 بدلاً من v1beta لحل مشكلة 404)
+API_KEY = "AIzaSyCaob5EdZ15Cry_79esFizlSkAs9VNI_yU"
+URL = f"https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key={API_KEY}"
 
 # ذاكرة المحادثة
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# عرض المحادثة
+# عرض الرسائل
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
 # منطقة الإدخال
-if prompt := st.chat_input("اسألني أي شيء..."):
+if prompt := st.chat_input("تفضل، أنا اسمعك..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
     with st.chat_message("assistant"):
-        if not api_key:
-            st.error("يرجى إدخال مفتاح API في القائمة الجانبية.")
-        else:
+        with st.spinner("جاري الاتصال بالعقل الاصطناعي..."):
+            # التنسيق الجديد للبيانات
+            headers = {'Content-Type': 'application/json'}
+            payload = {
+                "contents": [{"parts": [{"text": prompt}]}]
+            }
+            
             try:
-                response = model.generate_content(prompt)
-                st.markdown(response.text)
-                st.session_state.messages.append({"role": "assistant", "content": response.text})
+                response = requests.post(URL, headers=headers, json=payload)
+                if response.status_code == 200:
+                    result = response.json()
+                    answer = result['candidates'][0]['content']['parts'][0]['text']
+                    st.markdown(answer)
+                    st.session_state.messages.append({"role": "assistant", "content": answer})
+                else:
+                    st.error(f"حدث خطأ في الخادم (رمز: {response.status_code})")
+                    st.info("نصيحة: إذا استمر الخطأ، جرب إنشاء مفتاح جديد من Google AI Studio.")
             except Exception as e:
-                st.error(f"حدث خطأ: {e}")
-                
+                st.error("فشل الاتصال بالإنترنت.")
+
+# القائمة الجانبية
+st.sidebar.title("MUNTADHER.H.ASD")
+st.sidebar.markdown("---")
+st.sidebar.success("تم التطوير بواسطة: MUNTADHER.H.ASD")
+st.sidebar.write("إصدار الموديل: Gemini Pro")
