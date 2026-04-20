@@ -1,63 +1,55 @@
 import streamlit as st
 import requests
 
-# إعدادات الصفحة والهوية البصرية
-st.set_page_config(page_title="MUNTADHER.H.ASD AI", page_icon="🤖")
+# إعدادات الواجهة الاحترافية
+st.set_page_config(page_title="MUNTADHER.H.ASD AI", page_icon="⚡")
 
-# التصميم الخارجي والعنوان
+# تصميم الواجهة
 st.title("🤖 مساعد MUNTADHER.H.ASD الذكي")
 st.markdown("---")
 
-# مفتاح الـ API والروابط
-API_KEY = "AIzaSyCaob5EdZ15Cry_79esFizlSkAs9VNI_yU"
-URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={API_KEY}"
+# إعدادات الشريط الجانبي
+st.sidebar.title("إعدادات الوصول")
+# إضافة خانة لوضع مفتاح الـ API يدوياً في حال فشل المفتاح الافتراضي
+user_key = st.sidebar.text_input("أدخل مفتاح Gemini API الخاص بك (اختياري):", type="password")
+st.sidebar.markdown("---")
+st.sidebar.info("المطور: MUNTADHER.H.ASD")
 
-# ذاكرة المحادثة (لحفظ الشات أثناء الجلسة)
+# المفتاح الافتراضي (سنحاول استخدامه أولاً)
+DEFAULT_KEY = "AIzaSyCaob5EdZ15Cry_79esFizlSkAs9VNI_yU"
+FINAL_KEY = user_key if user_key else DEFAULT_KEY
+
+URL = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={FINAL_KEY}"
+
+# الذاكرة
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-# عرض الرسائل السابقة
+# عرض الشات
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# استقبال سؤال المستخدم
-if prompt := st.chat_input("تفضل اسألني أي شيء..."):
-    # عرض رسالة المستخدم وحفظها
+# منطقة الإدخال
+if prompt := st.chat_input("تفضل، أنا اسمعك..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
         st.markdown(prompt)
 
-    # طلب الرد من Gemini
     with st.chat_message("assistant"):
-        with st.spinner("جاري التفكير..."):
-            # التنسيق الصحيح للبيانات المرسلة (هذا يحل خطأ 400)
-            payload = {
-                "contents": [
-                    {
-                        "parts": [{"text": prompt}]
-                    }
-                ]
-            }
-            headers = {"Content-Type": "application/json"}
-            
+        with st.spinner("جاري الاتصال بالعقل الاصطناعي..."):
+            payload = {"contents": [{"parts": [{"text": prompt}]}]}
             try:
-                response = requests.post(URL, json=payload, headers=headers)
-                
+                response = requests.post(URL, json=payload)
                 if response.status_code == 200:
-                    data = response.json()
-                    # استخراج النص من استجابة جوجل
-                    answer = data['candidates'][0]['content']['parts'][0]['text']
+                    answer = response.json()['candidates'][0]['content']['parts'][0]['text']
                     st.markdown(answer)
-                    # حفظ الرد في الذاكرة
                     st.session_state.messages.append({"role": "assistant", "content": answer})
+                elif response.status_code == 400:
+                    st.error("خطأ 400: التنسيق مرفوض أو المفتاح غير صالح.")
+                    st.warning("يرجى التأكد من الحصول على مفتاح جديد من Google AI Studio.")
                 else:
-                    st.error(f"خطأ من المصدر: {response.status_code}")
-                    st.info("إذا استمر الخطأ، قد يحتاج مفتاح الـ API للتحديث.")
+                    st.error(f"خطأ غير معروف: {response.status_code}")
             except Exception as e:
-                st.error("حدث خطأ غير متوقع أثناء الاتصال.")
-
-# لمسة المطور في القائمة الجانبية
-st.sidebar.title("MUNTADHER.H.ASD")
-st.sidebar.info("تم تطوير هذا النظام الذكي بواسطة المبرمج منتظر.")
-st.sidebar.write("إصدار التطبيق: 2.0")
+                st.error("فشل الاتصال بالإنترنت.")
+                
