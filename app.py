@@ -1,23 +1,20 @@
 import streamlit as st
 import google.generativeai as genai
 
-# إعداد الواجهة الرسمية
+# إعدادات الهوية
 st.set_page_config(page_title="MUNTADHER.H.ASD AI", page_icon="🤖")
-st.title("🤖 مساعد MUNTADHER.H.ASD الذكي")
+st.markdown("<h1 style='text-align: center;'>🤖 مساعد MUNTADHER.H.ASD الذكي</h1>", unsafe_allow_status=True)
 
-# الربط الآمن عبر Secrets (هذا هو الضمان الحقيقي)
+# استدعاء المفتاح من الخزنة السرية (حماية 100%)
 try:
-    if "GEMINI_API_KEY" in st.secrets:
-        genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        model = genai.GenerativeModel('gemini-1.5-flash')
-    else:
-        st.error("⚠️ لم يتم العثور على المفتاح في الخزنة السرية (Secrets).")
-        st.stop()
-except Exception as e:
-    st.error(f"خطأ في النظام: {e}")
+    API_KEY = st.secrets["GEMINI_API_KEY"]
+    genai.configure(api_key=API_KEY)
+    model = genai.GenerativeModel('gemini-1.5-flash')
+except:
+    st.error("⚠️ خطأ في الإعدادات السرية. يرجى مراجعة مبرمج النظام.")
     st.stop()
 
-# نظام ذاكرة المحادثة
+# نظام الدردشة
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
@@ -25,7 +22,6 @@ for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
 
-# منطقة الشات
 if prompt := st.chat_input("تفضل، اسألني أي شيء..."):
     st.session_state.messages.append({"role": "user", "content": prompt})
     with st.chat_message("user"):
@@ -36,6 +32,6 @@ if prompt := st.chat_input("تفضل، اسألني أي شيء..."):
             response = model.generate_content(prompt)
             st.markdown(response.text)
             st.session_state.messages.append({"role": "assistant", "content": response.text})
-        except Exception:
-            st.error("❌ حدث خطأ في الاتصال بالسيرفر. يرجى التأكد من المفتاح في Secrets.")
+        except:
+            st.error("❌ فشل الاتصال بالسيرفر. المفتاح قد يكون منتهي الصلاحية.")
             
