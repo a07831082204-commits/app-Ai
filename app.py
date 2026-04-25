@@ -1,22 +1,41 @@
 import streamlit as st
+import google.generativeai as genai
 
-# الهوية
-st.set_page_config(page_title="MUNTADHER.H.ASD AI")
-
-# تصحيح الخطأ الذي ظهر في صورتك
+# إعدادات الهوية والواجهة
+st.set_page_config(page_title="MUNTADHER.H.ASD AI", page_icon="🤖")
 st.markdown("<h1 style='text-align: center;'>🤖 مساعد MUNTADHER.H.ASD الذكي</h1>", unsafe_allow_html=True)
 
-st.write("أهلاً بك في تطبيقي الخاص!")
+# استدعاء المفتاح من "الخزنة السرية" Secrets
+if "GEMINI_API_KEY" in st.secrets:
+    genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
+    model = genai.GenerativeModel('gemini-1.5-flash')
+else:
+    st.error("⚠️ يرجى إضافة مفتاح API في إعدادات Secrets.")
+    st.stop()
 
-# نظام بسيط للدردشة للتجربة
-if "chat_history" not in st.session_state:
-    st.session_state.chat_history = []
+# نظام ذاكرة الدردشة
+if "messages" not in st.session_state:
+    st.session_state.messages = []
 
-user_input = st.chat_input("اكتب رسالتك هنا...")
-if user_input:
-    st.session_state.chat_history.append(("أنت", user_input))
-    st.session_state.chat_history.append(("المساعد", "أنا أعمل الآن بنجاح!"))
+# عرض الرسائل السابقة
+for message in st.session_state.messages:
+    with st.chat_message(message["role"]):
+        st.markdown(message["content"])
 
-for role, text in st.session_state.chat_history:
-    st.write(f"**{role}:** {text}")
-    
+# استقبال سؤال المستخدم
+if prompt := st.chat_input("تفضل، اسألني أي شيء..."):
+    # إضافة سؤال المستخدم للذاكرة والعرض
+    st.session_state.messages.append({"role": "user", "content": prompt})
+    with st.chat_message("user"):
+        st.markdown(prompt)
+
+    # توليد الرد من الذكاء الاصطناعي
+    with st.chat_message("assistant"):
+        try:
+            # هنا نطلب من الموديل أن يعرف نفسه دائماً بذكر اسمك
+            response = model.generate_content(f"أجب كمساعد ذكي تم تطويره بواسطة المبرمج منتظر (MUNTADHER.H.ASD). السؤال هو: {prompt}")
+            st.markdown(response.text)
+            st.session_state.messages.append({"role": "assistant", "content": response.text})
+        except Exception as e:
+            st.error(f"❌ حدث خطأ: {e}")
+
